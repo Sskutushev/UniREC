@@ -29,18 +29,19 @@ def get_redis_client() -> Redis:
     return Redis.from_url(settings.redis_url, decode_responses=True)
 
 
-def get_cache_service() -> CacheService:
-    return CacheService(get_redis_client(), get_settings())
+def get_cache_service(redis_client: Redis = Depends(get_redis_client)) -> CacheService:
+    return CacheService(redis_client, get_settings())
 
 
 def get_decoder_service(
     session: AsyncSession = Depends(get_db),
     provider: LLMProvider = Depends(get_provider),
+    cache_service: CacheService = Depends(get_cache_service),
 ) -> BriefDecoderService:
     return BriefDecoderService(
         session=session,
         provider=provider,
-        cache_service=get_cache_service(),
+        cache_service=cache_service,
     )
 
 
