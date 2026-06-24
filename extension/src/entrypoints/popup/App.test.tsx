@@ -4,9 +4,9 @@ import { App } from './App';
 
 
 describe('App', () => {
-  it('renders the scaffold heading', () => {
+  it('renders the scaffold heading', async () => {
     render(<App />);
 
-    expect(screen.getByRole('heading', { name: 'AI Brief Decoder Lite' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'AI Brief Decoder Lite' })).toBeInTheDocument();
   });
 });

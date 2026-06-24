@@ -1,4 +1,3 @@
-import { CopyButton } from './CopyButton';
 import { RiskBadge } from './RiskBadge';
 import type { BriefResult } from '../types/api';
 
@@ -8,9 +7,9 @@ interface ResultViewProps {
 
 function renderList(title: string, items: string[]) {
   return (
-    <section className="result-block">
+    <section className="result-block result-list-block">
       <div className="block-header">
-        <p className="eyebrow">{title}</p>
+        <p className="overline">{title}</p>
       </div>
       <ul className="bullet-list">
         {items.map((item) => (
@@ -23,20 +22,9 @@ function renderList(title: string, items: string[]) {
 
 export function ResultView({ result }: ResultViewProps) {
   return (
-    <section className="panel panel-result">
-      <div className="panel-header panel-header-tight">
-        <div>
-          <p className="eyebrow">Decoded output</p>
-          <h2>Execution-ready brief</h2>
-        </div>
-        <div className="copy-actions">
-          <CopyButton label="Copy summary" value={result.summary} />
-          <CopyButton label="Copy JSON" value={JSON.stringify(result, null, 2)} />
-        </div>
-      </div>
-
+    <section className="result-view">
       <section className="summary-card">
-        <p className="eyebrow">Summary</p>
+        <p className="overline">Summary</p>
         <p>{result.summary}</p>
       </section>
 
@@ -48,7 +36,7 @@ export function ResultView({ result }: ResultViewProps) {
 
       <section className="result-block">
         <div className="block-header">
-          <p className="eyebrow">Risks</p>
+          <p className="overline">Risks</p>
         </div>
         <div className="risk-list">
           {result.risks.map((risk) => (
@@ -65,7 +53,7 @@ export function ResultView({ result }: ResultViewProps) {
 
       <section className="result-block">
         <div className="block-header">
-          <p className="eyebrow">Clarifying questions</p>
+          <p className="overline">Clarifying questions</p>
         </div>
         <ol className="number-list">
           {result.clarifying_questions.map((item) => (
@@ -75,7 +63,7 @@ export function ResultView({ result }: ResultViewProps) {
       </section>
 
       <section className="cta-card">
-        <p className="eyebrow">Recommended next action</p>
+        <p className="overline">Recommended next action</p>
         <p>{result.recommended_next_action}</p>
       </section>
     </section>
