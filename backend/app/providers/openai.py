@@ -19,10 +19,13 @@ Return only JSON that matches this schema:
 
 
 class OpenAIProvider(LLMProvider):
-    def __init__(self, model_name: str) -> None:
+    def __init__(self, model_name: str, timeout_seconds: float = 30.0) -> None:
+        super().__init__(timeout_seconds=timeout_seconds)
         from pydantic_ai import Agent
+        from pydantic_ai.settings import ModelSettings
 
         self._model_name = model_name
+        self._model_settings = ModelSettings(timeout=timeout_seconds)
         self._agent: Any = Agent(
             model_name,
             system_prompt=SYSTEM_PROMPT,
@@ -35,7 +38,7 @@ class OpenAIProvider(LLMProvider):
 
     async def decode_brief(self, text: str) -> ProviderResponse:
         try:
-            result = await self._agent.run(text)
+            result = await self._agent.run(text, model_settings=self._model_settings)
         except Exception as exc:  # pragma: no cover - network/provider path
             raise ProviderError(
                 "OpenAI provider request failed",
