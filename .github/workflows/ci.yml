@@ -1,0 +1,130 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - 'feat/**'
+      - 'fix/**'
+      - 'chore/**'
+      - 'docs/**'
+      - 'test/**'
+      - 'refactor/**'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  backend-quality:
+    name: Backend Quality
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v3
+      - name: Install backend dependencies
+        run: uv sync --extra dev
+      - name: Ruff lint
+        run: uv run ruff check .
+      - name: Ruff format check
+        run: uv run ruff format --check .
+      - name: Mypy
+        run: uv run mypy app
+      - name: Backend tests
+        run: uv run pytest tests/unit tests/integration -q
+
+  extension-quality:
+    name: Extension Quality
+    runs-on: ubuntu-latest
+    needs: backend-quality
+    defaults:
+      run:
+        working-directory: extension
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+      - name: Install extension dependencies
+        run: pnpm install --no-frozen-lockfile
+      - name: ESLint
+        run: pnpm lint
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Vitest
+        run: pnpm test
+      - name: Build extension
+        run: pnpm build
+      - name: Upload extension artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-dist
+          path: extension/.output
+
+  e2e-quality:
+    name: E2E Quality
+    runs-on: ubuntu-latest
+    needs:
+      - backend-quality
+      - extension-quality
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v3
+      - name: Install backend dependencies
+        run: uv sync --extra dev
+      - name: Run e2e tests
+        run: uv run pytest tests/e2e -q
+
+  final-build:
+    name: Final Build
+    runs-on: ubuntu-latest
+    needs:
+      - backend-quality
+      - extension-quality
+      - e2e-quality
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+      - name: Build backend package
+        working-directory: backend
+        run: |
+          uv sync --extra dev
+          uv build
+      - name: Build extension package
+        working-directory: extension
+        run: |
+          pnpm install --no-frozen-lockfile
+          pnpm build
+      - name: Upload backend dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-dist
+          path: backend/dist
+      - name: Upload extension dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-final-dist
+          path: extension/.output
