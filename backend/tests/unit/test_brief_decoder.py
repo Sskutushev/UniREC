@@ -36,7 +36,6 @@ async def latest_run(session) -> DecodeRun:
     return run
 
 
-@pytest.mark.asyncio
 async def test_service_happy_path(session) -> None:
     service = BriefDecoderService(
         session=session,
@@ -51,7 +50,6 @@ async def test_service_happy_path(session) -> None:
     assert response.result.summary
 
 
-@pytest.mark.asyncio
 async def test_service_marks_run_failed_on_provider_error(session) -> None:
     service = BriefDecoderService(
         session=session,
@@ -68,7 +66,6 @@ async def test_service_marks_run_failed_on_provider_error(session) -> None:
     assert run.error_code == "provider_failure"
 
 
-@pytest.mark.asyncio
 async def test_service_marks_run_failed_on_invalid_provider_payload(session) -> None:
     service = BriefDecoderService(
         session=session,
@@ -85,7 +82,6 @@ async def test_service_marks_run_failed_on_invalid_provider_payload(session) -> 
     assert run.error_code == "validation_error"
 
 
-@pytest.mark.asyncio
 async def test_service_uses_cache_before_provider(session) -> None:
     fake_redis = FakeRedis()
     cache = CacheService(fake_redis, get_settings())

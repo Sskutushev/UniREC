@@ -57,9 +57,9 @@ function ActionButton({ label, count, onClick, icon }: ActionButtonProps) {
 export function TopBar({ historyCount, unreadCount, onHistoryClick, onNotificationsClick }: TopBarProps) {
   return (
     <header className="top-bar">
-      <div>
-        <p className="overline">Platform workspace</p>
-        <h1>AI Brief Decoder Lite</h1>
+      <div className="top-bar-brand">
+        <span className="top-bar-dot" aria-hidden="true" />
+        <h1>AI Brief Decoder</h1>
       </div>
       <div className="top-actions">
         <ActionButton

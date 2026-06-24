@@ -7,6 +7,6 @@ describe('App', () => {
   it('renders the scaffold heading', async () => {
     render(<App />);
 
-    expect(await screen.findByRole('heading', { name: 'AI Brief Decoder Lite' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'AI Brief Decoder' })).toBeInTheDocument();
   });
 });

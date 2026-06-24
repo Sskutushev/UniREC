@@ -21,13 +21,15 @@ BRIEF_TEXT = (
     ],
 )
 async def test_decode_failure_modes(client, mode: str, expected_code: str) -> None:
+    # Override per-test, not per-session: set before request, restore after.
     app.dependency_overrides[get_provider] = lambda: FakeProvider(mode=mode)
-
-    response = await client.post("/v1/briefs/decode", json={"text": BRIEF_TEXT})
+    try:
+        response = await client.post("/v1/briefs/decode", json={"text": BRIEF_TEXT})
+    finally:
+        app.dependency_overrides.pop(get_provider, None)
 
     assert response.status_code == 502
     assert response.json()["error_code"] == expected_code
-    app.dependency_overrides.pop(get_provider, None)
 
 
 async def test_decode_rejects_short_input(client) -> None:

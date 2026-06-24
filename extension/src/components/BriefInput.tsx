@@ -16,33 +16,26 @@ export function BriefInput({ value, isLoading, onChange, onSubmit }: BriefInputP
 
   return (
     <section className="workspace-panel compose-shell">
-      <div className="compose-hero">
-        <div>
-          <p className="overline">Platform prototype</p>
-          <h2>Operationalize raw briefs without leaving Chrome</h2>
-          <p className="muted-copy compose-hero-copy">
-            Normalize ambiguous requests, preserve run history, and route every finished decode into
-            an enterprise-ready delivery workspace.
-          </p>
-        </div>
-        <div className="compose-metrics">
-          <div className="metric-card">
-            <span>Provider</span>
-            <strong>Fake / local</strong>
-          </div>
-          <div className="metric-card">
-            <span>Output</span>
-            <strong>Pydantic-safe</strong>
-          </div>
-          <div className="metric-card">
-            <span>Routing</span>
-            <strong>Results + inbox</strong>
-          </div>
+      <div className="compose-info-bar">
+        <span className="compose-info-bar-title">Brief Decoder</span>
+        <div className="compose-badges">
+          <span className="compose-badge">
+            <span className="compose-badge-dot" />
+            Fake provider
+          </span>
+          <span className="compose-badge">
+            <span className="compose-badge-dot" />
+            Pydantic validated
+          </span>
+          <span className="compose-badge">
+            <span className="compose-badge-dot" />
+            Structured JSON
+          </span>
         </div>
       </div>
 
       <section className="compose-editor-card">
-        <div className="panel-header">
+        <div className="compose-editor-header">
           <div>
             <p className="overline">Input</p>
             <h3>Paste a client brief</h3>
@@ -64,16 +57,16 @@ export function BriefInput({ value, isLoading, onChange, onSubmit }: BriefInputP
           <div className="compose-guidance">
             <p className="helper-text">
               {isTooShort
-                ? `Add ${remaining} more characters for a meaningful decode.`
-                : 'Ready to generate a structured brief, risks, questions, and next action.'}
+                ? `Add ${remaining} more characters to decode.`
+                : 'Ready — goals, risks, questions, and next action.'}
             </p>
-            <p className="sub-helper-text">
-              After completion, the result moves into the dedicated Results page and the Inbox feed.
-            </p>
+            {!isTooShort && !isLoading ? (
+              <p className="sub-helper-text">Result opens in the Results tab.</p>
+            ) : null}
           </div>
 
-          <button className="primary-button primary-button-wide" disabled={isDisabled} onClick={onSubmit} type="button">
-            {isLoading ? 'Running decode' : 'Run decode'}
+          <button className="primary-button" disabled={isDisabled} onClick={onSubmit} type="button">
+            {isLoading ? 'Running…' : 'Run decode'}
           </button>
         </div>
       </section>

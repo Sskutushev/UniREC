@@ -16,6 +16,10 @@ from app.repositories.decode_run import DecodeRunRepository
 from app.services.cache import CacheService
 
 
+def _hash_input(text: str) -> str:
+    return hashlib.sha256(text.lower().encode("utf-8")).hexdigest()
+
+
 class BriefDecoderService:
     def __init__(
         self,
@@ -29,70 +33,86 @@ class BriefDecoderService:
         self.repository = DecodeRunRepository(session)
 
     async def decode(self, input_text: str) -> DecodeRunResponse:
-        normalized_text = input_text.strip()
-        input_hash = hashlib.sha256(normalized_text.lower().encode("utf-8")).hexdigest()
+        normalized = input_text.strip()
+        input_hash = _hash_input(normalized)
 
-        cached_result = await self.cache_service.get(normalized_text)
-        if cached_result is not None:
-            run = await self.repository.create(
-                DecodeRunCreate(
-                    input_text=normalized_text,
-                    input_hash=input_hash,
-                    provider_name=self.provider.name,
-                )
-            )
-            await self.repository.update_status(
-                run,
-                RunStatus.COMPLETED,
-                result=cached_result.model_dump(mode="json"),
-                raw_provider_output=cached_result.model_dump_json(),
-            )
-            await self.session.commit()
-            return self._to_run_response(run)
+        cached = await self.cache_service.get(normalized)
+        if cached is not None:
+            return await self._persist_cache_hit(normalized, input_hash, cached)
 
-        run = await self.repository.create(
-            DecodeRunCreate(
-                input_text=normalized_text,
-                input_hash=input_hash,
-                provider_name=self.provider.name,
-            )
-        )
-        await self.repository.update_status(run, RunStatus.RUNNING)
-        await self.session.commit()
-
-        try:
-            provider_response = await self.provider.decode_brief(normalized_text)
-            parsed_payload = json.loads(provider_response.raw_output)
-            result = BriefResult.model_validate(parsed_payload)
-        except ProviderError as exc:
-            await self._mark_failed(run, exc.error_code, exc.message)
-            raise
-        except (json.JSONDecodeError, ValidationError) as exc:
-            await self._mark_failed(
-                run,
-                ErrorCode.VALIDATION_ERROR,
-                "Structured output validation failed",
-            )
-            raise ValidationAppError(
-                "Structured output validation failed",
-                error_code=ErrorCode.VALIDATION_ERROR,
-            ) from exc
-
-        await self.repository.update_status(
-            run,
-            RunStatus.COMPLETED,
-            result=result.model_dump(mode="json"),
-            raw_provider_output=provider_response.raw_output,
-        )
-        await self.session.commit()
-        await self.cache_service.set(normalized_text, result)
-        return self._to_run_response(run)
+        run = await self._create_run(normalized, input_hash)
+        return await self._execute_decode(run, normalized)
 
     async def get_run_status(self, run_id: UUID) -> DecodeRunStatus | None:
         run = await self.repository.get_by_id(run_id)
         if run is None:
             return None
         return self._to_run_status(run)
+
+    # ─── Private helpers ──────────────────────────────────────────────────────
+
+    async def _persist_cache_hit(
+        self, normalized: str, input_hash: str, result: BriefResult
+    ) -> DecodeRunResponse:
+        run = await self.repository.create(
+            DecodeRunCreate(
+                input_text=normalized,
+                input_hash=input_hash,
+                provider_name=self.provider.name,
+            )
+        )
+        await self.repository.update_status(
+            run,
+            RunStatus.COMPLETED,
+            result=result.model_dump(mode="json"),
+            raw_provider_output=result.model_dump_json(),
+        )
+        await self.session.commit()
+        return self._to_run_response(run)
+
+    async def _create_run(self, normalized: str, input_hash: str) -> DecodeRun:
+        run = await self.repository.create(
+            DecodeRunCreate(
+                input_text=normalized,
+                input_hash=input_hash,
+                provider_name=self.provider.name,
+            )
+        )
+        await self.repository.update_status(run, RunStatus.RUNNING)
+        await self.session.commit()
+        return run
+
+    async def _execute_decode(self, run: DecodeRun, normalized: str) -> DecodeRunResponse:
+        try:
+            result = await self._invoke_provider(normalized)
+        except ProviderError as exc:
+            await self._mark_failed(run, exc.error_code, exc.message)
+            raise
+        except (json.JSONDecodeError, ValidationError) as exc:
+            msg = "Structured output validation failed"
+            await self._mark_failed(run, ErrorCode.VALIDATION_ERROR, msg)
+            raise ValidationAppError(
+                "Structured output validation failed",
+                error_code=ErrorCode.VALIDATION_ERROR,
+            ) from exc
+
+        await self._persist_result(run, result, normalized)
+        return self._to_run_response(run)
+
+    async def _invoke_provider(self, text: str) -> BriefResult:
+        response = await self.provider.decode_brief(text)
+        payload = json.loads(response.raw_output)
+        return BriefResult.model_validate(payload)
+
+    async def _persist_result(self, run: DecodeRun, result: BriefResult, text: str) -> None:
+        await self.repository.update_status(
+            run,
+            RunStatus.COMPLETED,
+            result=result.model_dump(mode="json"),
+            raw_provider_output=result.model_dump_json(),
+        )
+        await self.session.commit()
+        await self.cache_service.set(text, result)
 
     async def _mark_failed(self, run: DecodeRun, error_code: str, error_message: str) -> None:
         await self.repository.update_status(
