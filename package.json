@@ -1,0 +1,12 @@
+{
+  "name": "ai-brief-decoder-lite",
+  "private": true,
+  "packageManager": "pnpm@9.12.0",
+  "scripts": {
+    "commitlint": "commitlint --from=HEAD~1 --to=HEAD"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.5.0",
+    "@commitlint/config-conventional": "^19.5.0"
+  }
+}

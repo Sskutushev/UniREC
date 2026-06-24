@@ -1,0 +1,11 @@
+name: Backend CI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  backend-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Placeholder
+        run: echo "Backend CI scaffold created"

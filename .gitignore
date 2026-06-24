@@ -1,0 +1,42 @@
+.DS_Store
+.idea/
+.vscode/
+*.log
+*.tmp
+*.bak
+*.swp
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.venv/
+backend/.coverage
+backend/.python-version
+backend/htmlcov/
+
+# Node
+node_modules/
+extension/.wxt/
+extension/.output/
+extension/dist/
+pnpm-lock.yaml
+
+# Environment
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Coverage and reports
+coverage/
+reports/
+local-report.md
+
+# OS / tooling
+docker/.data/
