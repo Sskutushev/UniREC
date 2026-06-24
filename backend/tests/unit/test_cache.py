@@ -36,7 +36,6 @@ def build_result() -> BriefResult:
     )
 
 
-@pytest.mark.asyncio
 async def test_cache_set_and_get_roundtrip() -> None:
     service = CacheService(FakeRedis(), get_settings())
     result = build_result()
@@ -47,11 +46,52 @@ async def test_cache_set_and_get_roundtrip() -> None:
     assert cached == result
 
 
-@pytest.mark.asyncio
-async def test_cache_gracefully_handles_redis_failures() -> None:
+async def test_cache_miss_returns_none() -> None:
+    service = CacheService(FakeRedis(), get_settings())
+
+    cached = await service.get("text that was never cached")
+
+    assert cached is None
+
+
+async def test_cache_key_normalizes_case_and_whitespace() -> None:
+    service = CacheService(FakeRedis(), get_settings())
+    result = build_result()
+
+    await service.set("  Hello World  ", result)
+
+    assert await service.get("hello world") == result
+    assert await service.get("  HELLO WORLD  ") == result
+
+
+async def test_cache_gracefully_handles_redis_read_failure() -> None:
     service = CacheService(BrokenRedis(), get_settings())
 
-    await service.set("Example brief text", build_result())
     cached = await service.get("Example brief text")
 
     assert cached is None
+
+
+async def test_cache_gracefully_handles_redis_write_failure() -> None:
+    service = CacheService(BrokenRedis(), get_settings())
+
+    # must not raise
+    await service.set("Example brief text", build_result())
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "short",
+        "A" * 200,
+        "  leading and trailing  ",
+    ],
+)
+async def test_cache_build_key_is_deterministic(text: str) -> None:
+    service = CacheService(FakeRedis(), get_settings())
+
+    key_a = service.build_key(text)
+    key_b = service.build_key(text)
+
+    assert key_a == key_b
+    assert key_a.startswith("brief:decode:v1:")

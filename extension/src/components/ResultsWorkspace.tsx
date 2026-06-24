@@ -19,8 +19,7 @@ export function ResultsWorkspace({ activeRun, recentRuns, onSelectRun }: Results
         <p className="overline">Results</p>
         <h2>No decoded briefs yet</h2>
         <p className="muted-copy">
-          Run the decoder from the Compose tab. Finished runs will open here as a dedicated
-          delivery-ready brief.
+          Run the decoder from the Compose tab to see structured results here.
         </p>
       </section>
     );
@@ -31,28 +30,30 @@ export function ResultsWorkspace({ activeRun, recentRuns, onSelectRun }: Results
       <div className="results-summary-strip">
         <div>
           <p className="overline">Current result</p>
-          <h2>Execution-ready brief</h2>
+          <h2>Decoded brief</h2>
         </div>
         <div className="copy-actions">
-          <CopyButton label="Copy summary" value={activeRun.result.summary} />
-          <CopyButton label="Copy JSON" value={JSON.stringify(activeRun.result, null, 2)} />
+          <CopyButton label="Summary" value={activeRun.result.summary} />
+          <CopyButton label="JSON" value={JSON.stringify(activeRun.result, null, 2)} />
         </div>
       </div>
 
-      <div className="recent-runs-strip">
-        {recentRuns.map((run) => (
-          <button
-            key={run.runId}
-            className={`recent-run-card ${run.runId === activeRun.runId ? 'recent-run-card-active' : ''}`}
-            type="button"
-            onClick={() => onSelectRun(run.runId)}
-          >
-            <span className="recent-run-time">{formatTime(run.createdAt)}</span>
-            <strong>{run.summary}</strong>
-            <span>{run.input.slice(0, 72)}...</span>
-          </button>
-        ))}
-      </div>
+      {recentRuns.length > 1 ? (
+        <div className="recent-runs-strip">
+          {recentRuns.map((run) => (
+            <button
+              key={run.runId}
+              className={`recent-run-card ${run.runId === activeRun.runId ? 'recent-run-card-active' : ''}`}
+              type="button"
+              onClick={() => onSelectRun(run.runId)}
+            >
+              <span className="recent-run-time">{formatTime(run.createdAt)}</span>
+              <strong>{run.summary}</strong>
+              <span>{run.input.slice(0, 60)}…</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       <div className="workspace-scroll results-scroll">
         <ResultView result={activeRun.result} />

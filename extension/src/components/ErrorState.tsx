@@ -1,7 +1,7 @@
 const ERROR_MESSAGES: Record<string, string> = {
-  provider_failure: 'The provider failed to complete the decode. Try again with the fake provider or retry the request.',
-  validation_error: 'The provider returned an invalid structured payload. Retry to generate a new structured result.',
-  poll_timeout: 'The run did not finish before the polling timeout. Retry the request.',
+  provider_failure: 'The provider failed. Retry with the fake provider or check the backend.',
+  validation_error: 'Provider returned an invalid payload. Retry to generate a new result.',
+  poll_timeout: 'The run timed out waiting for a result. Retry the request.',
   unexpected_error: 'Something unexpected happened while decoding the brief.',
 };
 
@@ -12,7 +12,8 @@ interface ErrorStateProps {
 }
 
 export function ErrorState({ errorCode, errorMessage, onRetry }: ErrorStateProps) {
-  const message = (errorCode && ERROR_MESSAGES[errorCode]) || errorMessage || ERROR_MESSAGES.unexpected_error;
+  const message =
+    (errorCode && ERROR_MESSAGES[errorCode]) || errorMessage || ERROR_MESSAGES.unexpected_error;
 
   return (
     <section className="status-card panel-error">
@@ -21,7 +22,7 @@ export function ErrorState({ errorCode, errorMessage, onRetry }: ErrorStateProps
         <p className="overline">Decode error</p>
         <h2>{errorCode ?? 'unexpected_error'}</h2>
         <p className="helper-text">{message}</p>
-        <button className="primary-button" type="button" onClick={onRetry}>
+        <button className="primary-button" type="button" onClick={onRetry} style={{ marginTop: 8 }}>
           Retry
         </button>
       </div>
