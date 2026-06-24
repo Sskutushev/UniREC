@@ -13,8 +13,15 @@ from app.providers.fake import FakeProvider
 
 
 class FakeRedis:
+    """In-process Redis replacement for tests.
+
+    Implements the subset of commands used by CacheService, IdempotencyService,
+    and the rate_limit_decode dependency.
+    """
+
     def __init__(self) -> None:
         self._storage: dict[str, str] = {}
+        self._counters: dict[str, int] = {}
 
     async def ping(self) -> bool:
         return True
@@ -25,6 +32,14 @@ class FakeRedis:
     async def set(self, key: str, value: str, ex: int | None = None) -> bool:
         del ex
         self._storage[key] = value
+        return True
+
+    async def incr(self, key: str) -> int:
+        self._counters[key] = self._counters.get(key, 0) + 1
+        return self._counters[key]
+
+    async def expire(self, key: str, seconds: int) -> bool:
+        del key, seconds
         return True
 
 
@@ -45,8 +60,8 @@ async def session() -> AsyncIterator[AsyncSession]:
         await connection.run_sync(Base.metadata.create_all)
 
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
-    async with session_factory() as session:
-        yield session
+    async with session_factory() as db_session:
+        yield db_session
 
     await engine.dispose()
 
