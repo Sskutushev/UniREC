@@ -21,9 +21,9 @@ def create_app() -> FastAPI:
     @app.exception_handler(AppError)
     async def handle_app_error(_: Request, exc: AppError) -> JSONResponse:
         status_code_map = {
-            ErrorCode.PROVIDER_FAILURE: 502,
-            ErrorCode.VALIDATION_ERROR: 502,
-            ErrorCode.RUN_NOT_FOUND: 404,
+            ErrorCode.PROVIDER_FAILURE.value: 502,
+            ErrorCode.VALIDATION_ERROR.value: 502,
+            ErrorCode.RUN_NOT_FOUND.value: 404,
         }
         error_payload = ErrorResponse(error_code=exc.error_code, message=exc.message)
         return JSONResponse(

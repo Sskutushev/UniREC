@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -56,7 +56,9 @@ class DecodeRunRepository(Repository):
         run.raw_provider_output = raw_provider_output
         run.error_code = error_code
         run.error_message = error_message
-        run.completed_at = datetime.now(timezone.utc) if status in {RunStatus.COMPLETED, RunStatus.FAILED} else None
+        run.completed_at = (
+            datetime.now(UTC) if status in {RunStatus.COMPLETED, RunStatus.FAILED} else None
+        )
         await self.session.flush()
         await self.session.refresh(run)
         return run

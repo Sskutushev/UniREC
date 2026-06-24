@@ -7,7 +7,7 @@ from uuid import UUID
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import NotFoundError, ProviderError, ValidationAppError
+from app.core.errors import ProviderError, ValidationAppError
 from app.db.models import DecodeRun
 from app.domain.enums import ErrorCode, RunStatus
 from app.domain.schemas import BriefResult, DecodeRunCreate, DecodeRunResponse, DecodeRunStatus
@@ -17,7 +17,12 @@ from app.services.cache import CacheService
 
 
 class BriefDecoderService:
-    def __init__(self, session: AsyncSession, provider: LLMProvider, cache_service: CacheService) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        provider: LLMProvider,
+        cache_service: CacheService,
+    ) -> None:
         self.session = session
         self.provider = provider
         self.cache_service = cache_service
@@ -63,7 +68,11 @@ class BriefDecoderService:
             await self._mark_failed(run, exc.error_code, exc.message)
             raise
         except (json.JSONDecodeError, ValidationError) as exc:
-            await self._mark_failed(run, ErrorCode.VALIDATION_ERROR, "Structured output validation failed")
+            await self._mark_failed(
+                run,
+                ErrorCode.VALIDATION_ERROR,
+                "Structured output validation failed",
+            )
             raise ValidationAppError(
                 "Structured output validation failed",
                 error_code=ErrorCode.VALIDATION_ERROR,
