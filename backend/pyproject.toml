@@ -13,6 +13,7 @@ dependencies = [
   "pydantic-ai-slim[openai]>=0.0.15",
   "pydantic-settings>=2.5.2",
   "pydantic>=2.9.2",
+  "psycopg2-binary>=2.9.10",
   "redis>=5.1.1",
   "sqlalchemy>=2.0.35",
   "uvicorn[standard]>=0.30.6"

@@ -5,23 +5,25 @@ services:
       POSTGRES_DB: ai_brief_decoder
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d ai_brief_decoder"]
       interval: 5s
       timeout: 5s
       retries: 10
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 10
+    ports:
+      - "6380:6379"
 
   backend:
     build:
@@ -38,7 +40,18 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   extension-builder:
     build:
-      context: ../extension
+      context: ..
+      dockerfile: extension/Dockerfile
+    volumes:
+      - ../extension-build:/workspace/extension-build
+
+volumes:
+  postgres_data:
