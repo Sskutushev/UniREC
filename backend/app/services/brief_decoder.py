@@ -9,11 +9,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ProviderError, ValidationAppError
 from app.db.models import DecodeRun
-from app.domain.enums import ErrorCode, RunStatus
+from app.domain.enums import ErrorCode
 from app.domain.schemas import BriefResult, DecodeRunCreate, DecodeRunResponse, DecodeRunStatus
 from app.providers.base import LLMProvider
 from app.repositories.decode_run import DecodeRunRepository
-from app.services.cache import CacheService
+from app.services.cache import CacheService, sanitize_input
 
 
 def _hash_input(text: str) -> str:
@@ -33,10 +33,10 @@ class BriefDecoderService:
         self.repository = DecodeRunRepository(session)
 
     async def decode(self, input_text: str) -> DecodeRunResponse:
-        normalized = input_text.strip()
+        normalized = sanitize_input(input_text)
         input_hash = _hash_input(normalized)
 
-        cached = await self.cache_service.get(normalized)
+        cached = await self.cache_service.get(normalized, self.provider.name)
         if cached is not None:
             return await self._persist_cache_hit(normalized, input_hash, cached)
 
@@ -54,6 +54,10 @@ class BriefDecoderService:
     async def _persist_cache_hit(
         self, normalized: str, input_hash: str, result: BriefResult
     ) -> DecodeRunResponse:
+        """Record a run entry for a cache-served response.
+
+        raw_provider_output is left None because no provider call was made.
+        """
         run = await self.repository.create(
             DecodeRunCreate(
                 input_text=normalized,
@@ -61,11 +65,10 @@ class BriefDecoderService:
                 provider_name=self.provider.name,
             )
         )
-        await self.repository.update_status(
+        await self.repository.mark_completed(
             run,
-            RunStatus.COMPLETED,
             result=result.model_dump(mode="json"),
-            raw_provider_output=result.model_dump_json(),
+            raw_provider_output=None,
         )
         await self.session.commit()
         return self._to_run_response(run)
@@ -78,46 +81,44 @@ class BriefDecoderService:
                 provider_name=self.provider.name,
             )
         )
-        await self.repository.update_status(run, RunStatus.RUNNING)
+        await self.repository.mark_running(run)
         await self.session.commit()
         return run
 
     async def _execute_decode(self, run: DecodeRun, normalized: str) -> DecodeRunResponse:
         try:
-            result = await self._invoke_provider(normalized)
+            result, raw_output = await self._invoke_provider(normalized)
         except ProviderError as exc:
-            await self._mark_failed(run, exc.error_code, exc.message)
+            await self._fail_run(run, exc.error_code, exc.message)
             raise
         except (json.JSONDecodeError, ValidationError) as exc:
             msg = "Structured output validation failed"
-            await self._mark_failed(run, ErrorCode.VALIDATION_ERROR, msg)
-            raise ValidationAppError(
-                "Structured output validation failed",
-                error_code=ErrorCode.VALIDATION_ERROR,
-            ) from exc
+            await self._fail_run(run, ErrorCode.VALIDATION_ERROR, msg)
+            raise ValidationAppError(msg, error_code=ErrorCode.VALIDATION_ERROR) from exc
 
-        await self._persist_result(run, result, normalized)
+        await self._persist_result(run, result, raw_output, normalized)
         return self._to_run_response(run)
 
-    async def _invoke_provider(self, text: str) -> BriefResult:
+    async def _invoke_provider(self, text: str) -> tuple[BriefResult, str]:
         response = await self.provider.decode_brief(text)
         payload = json.loads(response.raw_output)
-        return BriefResult.model_validate(payload)
+        result = BriefResult.model_validate(payload)
+        return result, response.raw_output
 
-    async def _persist_result(self, run: DecodeRun, result: BriefResult, text: str) -> None:
-        await self.repository.update_status(
+    async def _persist_result(
+        self, run: DecodeRun, result: BriefResult, raw_output: str, text: str
+    ) -> None:
+        await self.repository.mark_completed(
             run,
-            RunStatus.COMPLETED,
             result=result.model_dump(mode="json"),
-            raw_provider_output=result.model_dump_json(),
+            raw_provider_output=raw_output,
         )
         await self.session.commit()
-        await self.cache_service.set(text, result)
+        await self.cache_service.set(text, self.provider.name, result)
 
-    async def _mark_failed(self, run: DecodeRun, error_code: str, error_message: str) -> None:
-        await self.repository.update_status(
+    async def _fail_run(self, run: DecodeRun, error_code: str, error_message: str) -> None:
+        await self.repository.mark_failed(
             run,
-            RunStatus.FAILED,
             error_code=error_code,
             error_message=error_message,
         )
