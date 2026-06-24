@@ -15,10 +15,10 @@ export function ErrorState({ errorCode, errorMessage, onRetry }: ErrorStateProps
   const message = (errorCode && ERROR_MESSAGES[errorCode]) || errorMessage || ERROR_MESSAGES.unexpected_error;
 
   return (
-    <section className="panel panel-error">
+    <section className="status-card panel-error">
       <div className="error-mark">!</div>
       <div>
-        <p className="eyebrow">Decode error</p>
+        <p className="overline">Decode error</p>
         <h2>{errorCode ?? 'unexpected_error'}</h2>
         <p className="helper-text">{message}</p>
         <button className="primary-button" type="button" onClick={onRetry}>

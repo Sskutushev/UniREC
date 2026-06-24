@@ -26,6 +26,6 @@ describe('ResultView', () => {
 
     expect(screen.getByText(result.summary)).toBeInTheDocument();
     expect(screen.getByText('Scope creep')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /copy json/i })).toBeInTheDocument();
+    expect(screen.getByText('Recommended next action')).toBeInTheDocument();
   });
 });
