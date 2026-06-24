@@ -1,11 +1,45 @@
 name: Extension CI
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - 'feat/**'
+      - 'fix/**'
+      - 'chore/**'
+      - 'docs/**'
+      - 'test/**'
+      - 'refactor/**'
+  pull_request:
+    branches:
+      - main
 
 jobs:
   extension-ci:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: extension
     steps:
-      - name: Placeholder
-        run: echo "Extension CI scaffold created"
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+      - name: Install extension dependencies
+        run: pnpm install --no-frozen-lockfile
+      - name: ESLint
+        run: pnpm lint
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Vitest
+        run: pnpm test
+      - name: WXT build
+        run: pnpm build
+      - name: Upload extension artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-dist
+          path: extension/.output
