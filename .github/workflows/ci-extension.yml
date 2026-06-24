@@ -1,0 +1,11 @@
+name: Extension CI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  extension-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Placeholder
+        run: echo "Extension CI scaffold created"
