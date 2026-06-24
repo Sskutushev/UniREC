@@ -1,8 +1,8 @@
 from collections.abc import AsyncIterator
 from functools import lru_cache
 
-from redis.asyncio import Redis
 from fastapi import Depends
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings

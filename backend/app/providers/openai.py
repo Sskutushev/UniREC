@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic_ai import Agent
+from typing import Any
 
 from app.core.errors import ProviderError
 from app.domain.schemas import BriefResult
@@ -20,8 +20,14 @@ Return only JSON that matches this schema:
 
 class OpenAIProvider(LLMProvider):
     def __init__(self, model_name: str) -> None:
+        from pydantic_ai import Agent
+
         self._model_name = model_name
-        self._agent = Agent(model_name, system_prompt=SYSTEM_PROMPT, result_type=BriefResult)
+        self._agent: Any = Agent(
+            model_name,
+            system_prompt=SYSTEM_PROMPT,
+            output_type=BriefResult,
+        )
 
     @property
     def name(self) -> str:
@@ -31,5 +37,8 @@ class OpenAIProvider(LLMProvider):
         try:
             result = await self._agent.run(text)
         except Exception as exc:  # pragma: no cover - network/provider path
-            raise ProviderError("OpenAI provider request failed", error_code="provider_failure") from exc
+            raise ProviderError(
+                "OpenAI provider request failed",
+                error_code="provider_failure",
+            ) from exc
         return ProviderResponse(raw_output=result.output.model_dump_json())

@@ -64,12 +64,16 @@ class FakeProvider(LLMProvider):
                 {
                     "risk": "The requested scope may exceed the timeline",
                     "severity": "medium",
-                    "reason": "The brief bundles content, SEO, and launch readiness into two weeks.",
+                    "reason": (
+                        "The brief bundles content, SEO, and launch readiness into two weeks."
+                    ),
                 }
             ],
             "clarifying_questions": [
                 "What is the primary conversion action for the page?",
                 "Which SEO targets matter most for launch?",
             ],
-            "recommended_next_action": "Confirm the main CTA, audience, and must-have launch content.",
+            "recommended_next_action": (
+                "Confirm the main CTA, audience, and must-have launch content."
+            ),
         }
