@@ -41,24 +41,38 @@ class DecodeRunRepository(Repository):
         result = await self.session.execute(statement)
         return result.scalars().first()
 
-    async def update_status(
+    async def mark_running(self, run: DecodeRun) -> DecodeRun:
+        run.status = RunStatus.RUNNING
+        await self.session.flush()
+        await self.session.refresh(run)
+        return run
+
+    async def mark_completed(
         self,
         run: DecodeRun,
-        status: RunStatus,
         *,
-        result: dict[str, object] | None = None,
+        result: dict[str, object],
         raw_provider_output: str | None = None,
-        error_code: str | None = None,
-        error_message: str | None = None,
     ) -> DecodeRun:
-        run.status = status
+        run.status = RunStatus.COMPLETED
         run.result = result
         run.raw_provider_output = raw_provider_output
+        run.completed_at = datetime.now(UTC)
+        await self.session.flush()
+        await self.session.refresh(run)
+        return run
+
+    async def mark_failed(
+        self,
+        run: DecodeRun,
+        *,
+        error_code: str,
+        error_message: str,
+    ) -> DecodeRun:
+        run.status = RunStatus.FAILED
         run.error_code = error_code
         run.error_message = error_message
-        run.completed_at = (
-            datetime.now(UTC) if status in {RunStatus.COMPLETED, RunStatus.FAILED} else None
-        )
+        run.completed_at = datetime.now(UTC)
         await self.session.flush()
         await self.session.refresh(run)
         return run

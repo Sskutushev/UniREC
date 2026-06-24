@@ -8,7 +8,8 @@ from app.providers.base import LLMProvider, ProviderResponse
 
 
 class FakeProvider(LLMProvider):
-    def __init__(self, mode: str = "valid") -> None:
+    def __init__(self, mode: str = "valid", timeout_seconds: float = 30.0) -> None:
+        super().__init__(timeout_seconds=timeout_seconds)
         self._mode = mode
 
     @property

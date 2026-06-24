@@ -24,7 +24,7 @@ def _build_cors_middleware(app: FastAPI) -> None:
         CORSMiddleware,
         allow_origin_regex=rf"({_CHROME_EXT_ORIGIN_PREFIX}[a-z]{{32}}|http://localhost(:\d+)?)",
         allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["Content-Type"],
+        allow_headers=["Content-Type", "X-Idempotency-Key"],
         max_age=600,
     )
 

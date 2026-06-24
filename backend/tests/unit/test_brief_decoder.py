@@ -50,6 +50,38 @@ async def test_service_happy_path(session) -> None:
     assert response.result.summary
 
 
+async def test_service_stores_raw_provider_output_for_live_call(session) -> None:
+    service = BriefDecoderService(
+        session=session,
+        provider=FakeProvider(),
+        cache_service=CacheService(FakeRedis(), get_settings()),
+    )
+
+    await service.decode(BRIEF_TEXT)
+    run = await latest_run(session)
+
+    assert run.raw_provider_output is not None
+
+
+async def test_service_cache_hit_leaves_raw_provider_output_null(session) -> None:
+    """Cache-served runs must not pollute raw_provider_output with serialized BriefResult."""
+    from app.repositories.decode_run import DecodeRunRepository
+
+    cache = CacheService(FakeRedis(), get_settings())
+    provider = FakeProvider()
+    first_service = BriefDecoderService(session=session, provider=provider, cache_service=cache)
+    await first_service.decode(BRIEF_TEXT)
+
+    second_service = BriefDecoderService(session=session, provider=provider, cache_service=cache)
+    second_response = await second_service.decode(BRIEF_TEXT)
+
+    repo = DecodeRunRepository(session)
+    run = await repo.get_by_id(second_response.run_id)
+
+    assert run is not None
+    assert run.raw_provider_output is None
+
+
 async def test_service_marks_run_failed_on_provider_error(session) -> None:
     service = BriefDecoderService(
         session=session,
@@ -107,3 +139,18 @@ async def test_service_uses_cache_before_provider(session) -> None:
 
     assert provider.calls == 0
     assert first_response.result == second_response.result
+
+
+async def test_service_sanitizes_control_characters_in_input(session) -> None:
+    dirty_text = BRIEF_TEXT + "\x00\x1f"
+    service = BriefDecoderService(
+        session=session,
+        provider=FakeProvider(),
+        cache_service=CacheService(FakeRedis(), get_settings()),
+    )
+
+    response = await service.decode(dirty_text)
+    run = await latest_run(session)
+
+    assert response.status == RunStatus.COMPLETED
+    assert "\x00" not in run.input_text

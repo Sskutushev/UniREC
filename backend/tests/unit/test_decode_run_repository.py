@@ -51,16 +51,26 @@ async def test_repository_get_by_id_returns_none_for_unknown(session: AsyncSessi
     assert loaded is None
 
 
-async def test_repository_updates_status_to_completed(session: AsyncSession) -> None:
+async def test_repository_mark_running(session: AsyncSession) -> None:
     repo = DecodeRunRepository(session)
     run = await repo.create(make_create_data("b"))
 
-    await repo.update_status(
-        run,
-        RunStatus.COMPLETED,
-        result={"summary": "done"},
-        raw_provider_output="{}",
-    )
+    await repo.mark_running(run)
+    await session.commit()
+
+    loaded = await repo.get_by_id(run.id)
+
+    assert loaded is not None
+    assert loaded.status == RunStatus.RUNNING
+    assert loaded.result is None
+    assert loaded.error_code is None
+
+
+async def test_repository_mark_completed(session: AsyncSession) -> None:
+    repo = DecodeRunRepository(session)
+    run = await repo.create(make_create_data("c"))
+
+    await repo.mark_completed(run, result={"summary": "done"}, raw_provider_output="{}")
     await session.commit()
 
     loaded = await repo.get_by_id(run.id)
@@ -71,16 +81,26 @@ async def test_repository_updates_status_to_completed(session: AsyncSession) -> 
     assert loaded.completed_at is not None
 
 
-async def test_repository_updates_status_to_failed(session: AsyncSession) -> None:
+async def test_repository_mark_completed_cache_hit_leaves_raw_output_null(
+    session: AsyncSession,
+) -> None:
     repo = DecodeRunRepository(session)
-    run = await repo.create(make_create_data("c"))
+    run = await repo.create(make_create_data("d"))
 
-    await repo.update_status(
-        run,
-        RunStatus.FAILED,
-        error_code="provider_failure",
-        error_message="Provider timed out",
-    )
+    await repo.mark_completed(run, result={"summary": "from cache"}, raw_provider_output=None)
+    await session.commit()
+
+    loaded = await repo.get_by_id(run.id)
+
+    assert loaded is not None
+    assert loaded.raw_provider_output is None
+
+
+async def test_repository_mark_failed(session: AsyncSession) -> None:
+    repo = DecodeRunRepository(session)
+    run = await repo.create(make_create_data("e"))
+
+    await repo.mark_failed(run, error_code="provider_failure", error_message="Provider timed out")
     await session.commit()
 
     loaded = await repo.get_by_id(run.id)
@@ -89,15 +109,16 @@ async def test_repository_updates_status_to_failed(session: AsyncSession) -> Non
     assert loaded.status == RunStatus.FAILED
     assert loaded.error_code == "provider_failure"
     assert loaded.completed_at is not None
+    assert loaded.result is None
 
 
 async def test_repository_get_by_input_hash_returns_completed_run(session: AsyncSession) -> None:
     repo = DecodeRunRepository(session)
-    run = await repo.create(make_create_data("d"))
-    await repo.update_status(run, RunStatus.COMPLETED, result={"summary": "cached"})
+    run = await repo.create(make_create_data("f"))
+    await repo.mark_completed(run, result={"summary": "cached"})
     await session.commit()
 
-    cached = await repo.get_by_input_hash("d" * 64)
+    cached = await repo.get_by_input_hash("f" * 64)
 
     assert cached is not None
     assert cached.id == run.id
@@ -105,12 +126,12 @@ async def test_repository_get_by_input_hash_returns_completed_run(session: Async
 
 async def test_repository_get_by_input_hash_ignores_non_completed(session: AsyncSession) -> None:
     repo = DecodeRunRepository(session)
-    run = await repo.create(make_create_data("e"))
-    # leave as PENDING — should not be returned as a cache hit
+    run = await repo.create(make_create_data("g"))
+    await repo.mark_running(run)
     await session.commit()
     del run
 
-    cached = await repo.get_by_input_hash("e" * 64)
+    cached = await repo.get_by_input_hash("g" * 64)
 
     assert cached is None
 
