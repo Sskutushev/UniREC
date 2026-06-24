@@ -5,6 +5,7 @@ description = "Backend for AI Brief Decoder Lite"
 requires-python = ">=3.12"
 dependencies = [
   "alembic>=1.13.2",
+  "aiosqlite>=0.20.0",
   "asyncpg>=0.29.0",
   "fastapi>=0.115.0",
   "greenlet>=3.1.1",
@@ -44,3 +45,6 @@ packages = ["app"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
