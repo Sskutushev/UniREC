@@ -19,6 +19,8 @@ html,
 body,
 #root {
   width: 420px;
+  min-width: 420px;
+  max-width: 420px;
   min-height: 640px;
 }
 
@@ -45,8 +47,10 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 16px;
+  width: 100%;
+  min-width: 420px;
   min-height: 640px;
+  padding: 16px;
 }
 
 .hero-panel,
@@ -277,14 +281,10 @@ textarea {
 
 @media (max-width: 430px) {
   html,
-  body {
-    width: 100%;
-    min-height: 100vh;
-  }
-
-  #root {
-    width: 100%;
-    min-height: 100vh;
+  body,
+  #root,
+  .app-shell {
+    min-width: 420px;
   }
 
   .panel-header,
