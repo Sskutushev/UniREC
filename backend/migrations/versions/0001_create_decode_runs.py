@@ -19,7 +19,6 @@ depends_on: Sequence[str] | None = None
 
 def upgrade() -> None:
     run_status = sa.Enum("pending", "running", "completed", "failed", name="run_status")
-    run_status.create(op.get_bind(), checkfirst=True)
 
     op.create_table(
         "decode_runs",
@@ -55,4 +54,3 @@ def downgrade() -> None:
     op.drop_index("ix_decode_runs_status", table_name="decode_runs")
     op.drop_index("ix_decode_runs_input_hash", table_name="decode_runs")
     op.drop_table("decode_runs")
-    sa.Enum(name="run_status").drop(op.get_bind(), checkfirst=True)

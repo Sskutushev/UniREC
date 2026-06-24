@@ -13,6 +13,10 @@ from app.db.base import Base
 from app.domain.enums import RunStatus
 
 
+def enum_values(enum_cls: type[RunStatus]) -> list[str]:
+    return [member.value for member in enum_cls]
+
+
 class DecodeRun(Base):
     __tablename__ = "decode_runs"
     __table_args__ = (
@@ -22,7 +26,7 @@ class DecodeRun(Base):
 
     id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
     status: Mapped[RunStatus] = mapped_column(
-        Enum(RunStatus, name="run_status"),
+        Enum(RunStatus, name="run_status", values_callable=enum_values),
         default=RunStatus.PENDING,
         nullable=False,
     )

@@ -24,6 +24,7 @@ node_modules/
 extension/.wxt/
 extension/.output/
 extension/dist/
+extension-build/
 
 # Environment
 .env
